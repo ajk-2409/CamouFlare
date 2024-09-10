@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="https://img.icons8.com/?size=100&id=BTaHZQ1YcuCH&format=png&color=000000">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <title>Login</title>
+    <style>
+        /* Custom Styles */
+        .animated-bg {
+            animation: fadeInDown 0.5s ease-out;
+        }
+        
+        .animated-fade {
+            transition: opacity 0.3s ease-out;
+        }
+        
+        @keyframes fadeInDown {
+            0% {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        body {
+            background: rgb(0, 0, 0); /* Ensure a black background */
+        }
+        canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: -1; /* Place canvas behind other elements */
+        }
+        /* Glow effect */
+        .glow-border {
+            box-shadow: 0 0 10px #f80c86;
+        }
+        
+    </style>
+</head>
+<body class="flex items-center justify-center h-screen">
+    <canvas id="c"></canvas> <!-- Matrix rain canvas -->
+    <div class="w-full max-w-xs bg-black rounded-lg mx-auto shadow-lg border-pink-800 glow-border">
+        <h1 class="text-center text-3xl text-gray-200 font-bold dark:text-gray-100 mt-6 mb-6">Welcomeback to CamouFlare!</h1>
+        <form class="bg-black dark:bg-black rounded px-8 pt-6 pb-8 mb-4 animated-bg shadow-lg " method="POST">
+            {% csrf_token %}
+            <div class="mb-4 animated-fade">
+                <label class="block text-gray-300 dark:text-gray-200 text-sm font-bold mb-2" for="username">
+                    Username
+                </label>
+                <input class="shadow appearance-none rounded w-full py-2 px-3 text-gray-300 dark:text-gray-200 leading-tight focus:outline-none focus:shadow-outline bg-gray-800 dark:bg-black rounded-lg" id="username" type="text" name="username">
+            </div>
+            <div class="mb-6 animated-fade">
+                <label class="block text-gray-300 dark:text-gray-200 text-sm font-bold mb-2" for="password">
+                    Password
+                </label>
+                <input class="shadow appearance-none rounded w-full py-2 px-3 text-gray-300 dark:text-gray-200 leading-tight focus:outline-none focus:shadow-outline bg-gray-800 dark:bg-black shadow-2xl rounded-lg" id="password" type="password" name="password">
+            </div>
+            <div class="flex items-center justify-between animated-fade">
+                <button class="bg-gray-800 hover:bg-pink-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition duration-300 shadow-lg rounded-lg" type="submit">
+                    Log In
+                </button>
+            </div>
+            <div class="animated-fade mt-4">
+                {% if error %}
+                <p style="color:red">{{ error }}</p>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+    <script>
+        // get canvas element and context
+        var c = document.getElementById("c");
+        var ctx = c.getContext("2d");
+
+        // make the canvas full screen
+        c.height = window.innerHeight;
+        c.width = window.innerWidth;
+
+        // characters for the matrix rain effect
+        var matrix = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ123456789@#$%^&*()*&^%+-/~{[|`]}";
+        matrix = matrix.split("");
+
+        var font_size = 10;
+        var columns = c.width / font_size; // number of columns for the rain
+        var drops = []; // an array of drops - one per column
+        for (var x = 0; x < columns; x++)
+            drops[x] = 1; // x below is the x coordinate, 1 = y co-ordinate of the drop(same for every drop initially)
+
+        // function to draw the characters
+        function draw() {
+            // Black BG for the canvas, translucent BG to show trail
+            ctx.fillStyle = "rgba(0, 0, 0, 0.04)";
+            ctx.fillRect(0, 0, c.width, c.height);
+
+            ctx.fillStyle = "#f4427d"; // color of the text
+            ctx.font = font_size + "px arial";
+
+            // loop over drops
+            for (var i = 0; i < drops.length; i++) {
+                // choose a random character
+                var text = matrix[Math.floor(Math.random() * matrix.length)];
+                // x = i * font_size, y = value of drops[i] * font_size
+                ctx.fillText(text, i * font_size, drops[i] * font_size);
+
+                // reset drop to the top randomly after it has crossed the screen
+                if (drops[i] * font_size > c.height && Math.random() > 0.975)
+                    drops[i] = 0;
+
+                // increment Y coordinate
+                drops[i]++;
+            }
+        }
+
+        // call draw function every 35 milliseconds
+        setInterval(draw, 35);
+    </script>
+</body>
+</html>

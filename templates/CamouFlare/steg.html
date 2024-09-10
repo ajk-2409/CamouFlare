@@ -1,0 +1,269 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" class="dark h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Steganography</title>
+  <link rel="icon" type="image/png" href="https://img.icons8.com/?size=100&id=BTaHZQ1YcuCH&format=png&color=000000">
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <style>
+    /* Custom dark mode styles */
+    .dark {
+      --bg-color: #000000; /* Dark background color */
+      --text-color: #cbd5e0; /* Light text color */
+      --accent-color: #3182ce; /* Blue accent color */
+    }
+
+    .dark body {
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      animation: fadeIn 1s ease-in-out forwards;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh; /* Full viewport height */
+      overflow: hidden; /* Prevent scrollbars */
+      position: relative;
+    }
+
+    .dark .bg-white {
+      background-color: #000000; /* Darker background for containers */
+    }
+
+    .dark .text-gray-800 {
+      color: var(--text-color); /* Light text color */
+    }
+
+    .dark .text-gray-700 {
+      color: #a0aec0; /* Adjusted gray for dark mode */
+    }
+
+    .dark .text-blue-600 {
+      color: var(--accent-color); /* Blue accent color */
+    }
+
+    .dark .bg-blue-500 {
+      background-color: var(--accent-color); /* Blue accent color */
+    }
+
+    /* Custom file upload styles */
+    .file-upload-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      border-width: 2px;
+      border-color: #e2e8f0;
+      border-radius: 0.25rem;
+      transition: background-color 0.3s ease, transform 0.3s ease; /* Change background color on hover */
+      min-height: 200px;
+      cursor: pointer;
+    }
+
+    .file-upload-container:hover {
+      background-color: rgba(49, 130, 206, 0.1); /* Light blue background on hover */
+      transform: scale(1.05); /* Slightly increase size on hover */
+    }
+
+    .file-upload-container input[type="file"] {
+      display: none;
+    }
+
+    .file-upload-icon {
+      width: 50px;
+      height: 50px;
+      fill: #29517a;
+      transition: fill 0.3s ease; /* Smooth color transition on hover */
+    }
+
+    .file-upload-container:hover .file-upload-icon {
+      fill: #225398; /* Accent blue color on hover */
+    }
+
+    .selected-filename {
+      margin-top: 10px;
+      font-size: 16px;
+      color: var(--accent-color);
+      font-weight: bold;
+    }
+
+    /* Canvas styles */
+    #matrix-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: -1; /* Ensure canvas is behind other content */
+    }
+    .glow-border {
+            box-shadow: 0 0 10px #f80c86;
+        }
+  </style>
+</head>
+<body class="dark">
+  <canvas id="matrix-canvas"></canvas>
+
+  <div class="container mx-auto mt-10 p-5 rounded-lg shadow-lg text-gray-800 dark:text-gray-200">
+    <div class="flex justify-center mx-auto p-8 rounded-lg shadow-lg">
+      <h1 class="text-white text-4xl font-bold bg-black inline-block px-4 py-2">CamouFlare</h1>
+    </div>    
+
+    <!-- Logout Button -->
+    <div class="flex justify-end mb-4">
+      <a href="{% url 'logout' %}" class="bg-pink-600 hover:bg-red-600 text-white font-bold py-2 px-4 rounded transition duration-300 dark:bg-red-600 dark:hover:bg-red-700">
+        Logout
+      </a>
+    </div>
+
+    <div class="flex flex-wrap justify-center">
+      <div class="w-full md:w-5/12 rounded-lg p-5 ">
+        <div class="bg-white dark:bg-gray-700 p-6 rounded-lg shadow-md glow-border">
+          <h2 class="text-3xl font-semibold mb-5 text-gray-800 dark:text-gray-200">Encode Message</h2>
+          <form id="encode-form" method="post" enctype="multipart/form-data" action="{% url 'encode_message' %}">
+            {% csrf_token %}
+            <label for="encode-file-upload" class="file-upload-container" id="encode-drop-zone">
+              <div class="text-center">
+                <svg class="file-upload-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+                <p class="mt-1 text-sm text-gray-600">
+                  <span class="font-medium text-blue-600 hover:text-blue-500">Drag and drop</span> or <span class="font-medium text-blue-600 hover:text-blue-500">click to select</span> an image
+                </p>
+              </div>
+              <input id="encode-file-upload" type="file" name="image" class="hidden" onchange="updateFilename('encode-file-upload', 'encode-selected-file')" />
+            </label>
+            <span id="encode-selected-file" class="selected-filename"></span>
+            <textarea name="message" id="message" rows="5" class="w-full px-3 py-2 mt-4 text-gray-200 bg-gray-700 rounded-lg focus:outline-none focus:shadow-outline" placeholder="Enter your message here..."></textarea>
+            <button class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded mt-4 transition duration-300 dark:bg-green-600 dark:hover:bg-green-700" type="submit">Encode</button>
+          </form>
+        </div>
+      </div>
+
+      <div class="w-full md:w-5/12 p-5 rounded-lg ">
+        <div class="bg-white dark:bg-gray-700 p-6 rounded-lg shadow-md glow-border">
+          <h2 class="text-3xl font-semibold mb-5 text-gray-800 dark:text-gray-200">Decode Message</h2>
+          <form id="decode-form" method="post" enctype="multipart/form-data" action="{% url 'decode_message' %}">
+            {% csrf_token %}
+            <label for="decode-file-upload" class="file-upload-container" id="decode-drop-zone">
+              <div class="text-center">
+                <svg class="file-upload-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                </svg>
+                <p class="mt-1 text-sm text-gray-600">
+                  <span class="font-medium text-blue-600 hover:text-blue-500">Drag and drop</span> or <span class="font-medium text-blue-600 hover:text-blue-500">click to select</span> an image
+                </p>
+              </div>
+              <input id="decode-file-upload" type="file" name="image" class="hidden" onchange="updateFilename('decode-file-upload', 'decode-selected-file')" />
+            </label>
+            <span id="decode-selected-file" class="selected-filename"></span>
+            <button class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded mt-4 transition duration-300 dark:bg-green-600 dark:hover:bg-green-700" type="submit">Decode</button>
+          </form>
+          <button class="w-full bg-pink-600 hover:bg-red-600 text-white font-bold py-3 px-4 rounded mt-4 transition duration-300 dark:bg-pink-600 dark:hover:bg-red-700" onclick="resetForms()">Reset</button>
+        </div>
+      </div>
+    </div>
+
+    {% if decoded_message %}
+    <div class="mt-10 p-5 bg-white dark:bg-gray-700 rounded-lg shadow-md">
+      <h3 class="text-2xl font-bold text-gray-800 dark:text-gray-200">Decoded Message:</h3>
+      <p class="text-lg text-gray-700 dark:text-gray-300 mt-2">{{ decoded_message }}</p>
+    </div>
+    {% endif %}
+
+    {% if error %}
+    <div class="mt-10 p-5 bg-white dark:bg-gray-700 rounded-lg shadow-md">
+      <h3 class="text-2xl font-bold text-red-600 dark:text-red-400">Error:</h3>
+      <p class="text-lg text-red-500 dark:text-red-300 mt-2">{{ error }}</p>
+    </div>
+    {% endif %}
+  </div>
+
+  <script>
+    function updateFilename(inputId, outputId) {
+      const fileInput = document.getElementById(inputId);
+      const selectedFile = fileInput.files[0];
+      const outputElement = document.getElementById(outputId);
+
+      if (selectedFile) {
+        outputElement.textContent = selectedFile.name;
+      } else {
+        outputElement.textContent = '';
+      }
+    }
+
+    function resetForms() {
+      document.getElementById('encode-form').reset();
+      document.getElementById('decode-form').reset();
+      document.getElementById('encode-selected-file').textContent = '';
+      document.getElementById('decode-selected-file').textContent = '';
+      window.location.href = "{% url 'home' %}";
+    }
+
+    document.getElementById('encode-drop-zone').addEventListener('dragover', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      e.dataTransfer.dropEffect = 'copy';
+    });
+
+    document.getElementById('encode-drop-zone').addEventListener('drop', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      const fileInput = document.getElementById('encode-file-upload');
+      fileInput.files = e.dataTransfer.files;
+      updateFilename('encode-file-upload', 'encode-selected-file');
+    });
+
+    document.getElementById('decode-drop-zone').addEventListener('dragover', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      e.dataTransfer.dropEffect = 'copy';
+    });
+
+    document.getElementById('decode-drop-zone').addEventListener('drop', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      const fileInput = document.getElementById('decode-file-upload');
+      fileInput.files = e.dataTransfer.files;
+      updateFilename('decode-file-upload', 'decode-selected-file');
+    });
+
+    // Matrix Rain Effect
+    var c = document.getElementById("matrix-canvas");
+    var ctx = c.getContext("2d");
+
+    c.height = window.innerHeight;
+    c.width = window.innerWidth;
+
+    var matrix = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ123456789@#$%^&*()*&^%+-/~{[|]}";
+    matrix = matrix.split("");
+
+    var font_size = 10;
+    var columns = c.width/font_size;
+    var drops = [];
+    for(var x = 0; x < columns; x++)
+        drops[x] = 1; 
+
+    function draw()
+    {
+        ctx.fillStyle = "rgba(0, 0, 0, 0.04)";
+        ctx.fillRect(0, 0, c.width, c.height);
+
+        ctx.fillStyle = "#f4427d";
+        ctx.font = font_size + "px arial";
+        for(var i = 0; i < drops.length; i++)
+        {
+            var text = matrix[Math.floor(Math.random()*matrix.length)];
+            ctx.fillText(text, i*font_size, drops[i]*font_size);
+
+            if(drops[i]*font_size > c.height && Math.random() > 0.975)
+                drops[i] = 0;
+
+            drops[i]++;
+        }
+    }
+
+    setInterval(draw, 35);
+  </script>
+</body>
+</html>
